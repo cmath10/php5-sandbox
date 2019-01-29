@@ -1,0 +1,45 @@
+version: "3.2"
+services:
+  app:
+    image: php5-sandbox-app
+    environment:
+      - XDEBUG_CONFIG=remote_host=${ip}
+    ports:
+      - "${port_main}:80"
+    container_name: php5-sandbox
+    volumes:
+      - type: bind
+        source: .
+        target: /var/www/php5-sandbox
+    depends_on:
+      - mysql
+
+  console:
+    image: php5-sandbox-console
+    depends_on:
+      - app
+    volumes:
+      - type: bind
+        source: .
+        target: /var/www/php5-sandbox
+      - type: bind
+        source: "$SSH_AUTH_SOCK"
+        target: /ssh-auth.sock
+    environment:
+      - UID=${uid}
+      - GID=${gid}
+      - SSH_AUTH_SOCK=/ssh-auth.sock
+      - XDEBUG_CONFIG=remote_enable=1 remote_mode=req remote_host=${ip} remote_port=9000 idekey=phpstorm remote_connect_back=0
+      - PHP_IDE_CONFIG=serverName=web
+
+  mysql:
+    image: "mysql:5.6.37"
+    command: mysqld --server-id=1 --log-bin=mysql-binlog --binlog-format=ROW
+    ports:
+      - "${port_mysql}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 1
+      MYSQL_DATABASE: php5sandbox
+    tmpfs:
+      - /var/lib/mysql/:rw,noexec,nosuid,size=1000m
+      - /tmp/:rw,noexec,nosuid,size=50m
